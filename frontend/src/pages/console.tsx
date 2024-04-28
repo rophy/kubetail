@@ -445,17 +445,9 @@ type InnerLayoutProps = {
   content: JSX.Element;
 };
 
-const InnerLayout = ({ sidebar, header, content }: InnerLayoutProps) => {
-  const [sidebarWidth, setSidebarWidth] = useState(300);
+const InnerLayout = ({ header, content }: InnerLayoutProps) => {
 
   const handleDrag = () => {
-    // change width when mouse moves
-    const fn = (ev: MouseEvent) => {
-      const newWidth = Math.max(ev.clientX, 100);
-      setSidebarWidth(newWidth);
-    };
-    document.addEventListener('mousemove', fn);
-
     // show resize cursor
     const bodyCursor = document.body.style.cursor;
     document.body.style.cursor = 'ew-resize';
@@ -466,7 +458,6 @@ const InnerLayout = ({ sidebar, header, content }: InnerLayoutProps) => {
 
     // cleanup
     document.addEventListener('mouseup', function cleanup() {
-      document.removeEventListener('mousemove', fn);
       document.body.style.cursor = bodyCursor;
       document.body.onselectstart = onSelectStart;
       document.removeEventListener('mouseup', cleanup);
