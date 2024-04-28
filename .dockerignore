@@ -1,4 +1,4 @@
-node_modules
+*/node_modules
 .git
 /backend/website
 /frontend/.env*.local
