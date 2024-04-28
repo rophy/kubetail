@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { PlusCircleIcon, TrashIcon } from '@heroicons/react/24/solid';
 import distinctColors from 'distinct-colors';
 import {
   History as HistoryIcon,
@@ -29,7 +28,6 @@ import Form from '@kubetail/ui/elements/Form';
 import { Popover, PopoverTrigger, PopoverContent } from '@kubetail/ui/elements/Popover';
 import Spinner from '@kubetail/ui/elements/Spinner';
 
-import logo from '@/assets/logo.svg';
 import AppLayout from '@/components/layouts/AppLayout';
 import AuthRequired from '@/components/utils/AuthRequired';
 import { DateRangeDropdown, DateRangeDropdownOnChangeArgs } from '@/components/widgets/DateRangeDropdown';
@@ -42,14 +40,13 @@ import {
   LogFeedViewer,
   allLogFeedColumns,
   useLogFeedControls,
-  useLogFeedFacets,
   useLogFeedFilters,
   useLogFeedIsWrap,
   useLogFeedMetadata,
   useLogFeedVisibleCols,
 } from '@/lib/console/logfeed';
 import {
-  Counter, MapSet, getBasename, joinPaths,
+  MapSet,
 } from '@/lib/helpers';
 import { allWorkloads, iconMap, labelsPMap } from '@/lib/workload';
 
@@ -151,12 +148,6 @@ const SettingsButton = () => {
 const SidebarWorkloads = () => {
   const { loading, workloads } = useWorkloads();
   const [isPickerOpen, setIsPickerOpen] = useState(false);
-  const [searchParams, setSearchParams] = useSearchParams();
-
-  const deleteSource = (sourcePath: string) => {
-    searchParams.delete('source', sourcePath);
-    setSearchParams(new URLSearchParams(searchParams), { replace: true });
-  };
 
   return (
     <>
@@ -166,14 +157,6 @@ const SidebarWorkloads = () => {
           <span className="font-bold text-chrome-500">Sources</span>
           {loading && <Spinner className="h-[15px] w-[15px]" />}
         </div>
-        <button
-          type="button"
-          onClick={() => setIsPickerOpen(true)}
-          className="cursor-pointer"
-          aria-label="Open source picker"
-        >
-          <PlusCircleIcon className="h-[24px] w-[24px] text-primary" />
-        </button>
       </div>
       <div className="space-y-2">
         {allWorkloads.map((workload) => {
@@ -190,13 +173,6 @@ const SidebarWorkloads = () => {
                 {objs.map((obj) => (
                   <li key={obj.id} className="flex items-center justify-between">
                     <span className="whitespace-nowrap overflow-hidden text-ellipsis">{obj.metadata.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => deleteSource(`${workload}/${obj.metadata.namespace}/${obj.metadata.name}`)}
-                      aria-label="Delete source"
-                    >
-                      <TrashIcon className="h-[18px] w-[18px] text-chrome-300 hover:text-chrome-500 cursor-pointer" />
-                    </button>
                   </li>
                 ))}
               </ul>
@@ -272,60 +248,6 @@ const SidebarPodsAndContainers = () => {
 };
 
 /**
- * Sidebar facets component
- */
-
-const Facets = ({ label, counter }: { label: string, counter: Counter }) => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const urlKey = label.toLocaleLowerCase();
-
-  const handleToggle = (ev: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, checked } = ev.currentTarget;
-    if (checked) searchParams.append(name, value);
-    else searchParams.delete(name, value);
-    setSearchParams(new URLSearchParams(searchParams));
-  };
-
-  return (
-    <>
-      <div className="border-t border-chrome-300 mt-[10px] py-[10px] font-bold text-chrome-500">
-        {label}
-      </div>
-      {counter.orderedEntries().map(([facet, count]) => (
-        <div key={facet} className="flex items-center space-x-2">
-          <div>
-            <Form.Check
-              checked={searchParams.has(urlKey, facet)}
-              name={urlKey}
-              value={facet}
-              onChange={handleToggle}
-            />
-          </div>
-          <div className="flex-grow flex justify-between">
-            <div>{facet}</div>
-            <div>{`(${count})`}</div>
-          </div>
-        </div>
-      ))}
-    </>
-  );
-};
-
-const SidebarFacets = () => {
-  const facets = useLogFeedFacets();
-
-  return (
-    <div>
-      <Facets label="Region" counter={facets.region} />
-      <Facets label="Zone" counter={facets.zone} />
-      <Facets label="OS" counter={facets.os} />
-      <Facets label="Arch" counter={facets.arch} />
-      <Facets label="Node" counter={facets.node} />
-    </div>
-  );
-};
-
-/**
  * Sidebar component
  */
 
@@ -337,12 +259,7 @@ const Sidebar = () => {
   useEffect(() => {
     const filters = new MapSet<string, string>();
     [
-      'container',
-      'region',
-      'zone',
-      'os',
-      'arch',
-      'node',
+      'container'
     ].forEach((key) => {
       if (searchParams.has(key)) filters.set(key, new Set(searchParams.getAll(key)));
     });
@@ -351,12 +268,8 @@ const Sidebar = () => {
 
   return (
     <div className="text-sm px-[7px] pt-[10px]">
-      <a href={joinPaths(getBasename(), '/')}>
-        <img src={joinPaths(getBasename(), logo)} alt="logo" className="display-block h-[31.4167px] mb-[10px]" />
-      </a>
       <SidebarWorkloads />
       <SidebarPodsAndContainers />
-      <SidebarFacets />
     </div>
   );
 };
@@ -445,9 +358,17 @@ type InnerLayoutProps = {
   content: JSX.Element;
 };
 
-const InnerLayout = ({ header, content }: InnerLayoutProps) => {
+const InnerLayout = ({ sidebar, header, content }: InnerLayoutProps) => {
+  const [sidebarWidth, setSidebarWidth] = useState(300);
 
   const handleDrag = () => {
+    // change width when mouse moves
+    const fn = (ev: MouseEvent) => {
+      const newWidth = Math.max(ev.clientX, 100);
+      setSidebarWidth(newWidth);
+    };
+    document.addEventListener('mousemove', fn);
+
     // show resize cursor
     const bodyCursor = document.body.style.cursor;
     document.body.style.cursor = 'ew-resize';
@@ -458,6 +379,7 @@ const InnerLayout = ({ header, content }: InnerLayoutProps) => {
 
     // cleanup
     document.addEventListener('mouseup', function cleanup() {
+      document.removeEventListener('mousemove', fn);
       document.body.style.cursor = bodyCursor;
       document.body.onselectstart = onSelectStart;
       document.removeEventListener('mouseup', cleanup);
@@ -466,13 +388,21 @@ const InnerLayout = ({ header, content }: InnerLayoutProps) => {
 
   return (
     <div className="relative h-full">
+      <div
+        className="absolute h-full bg-chrome-100 overflow-x-hidden"
+        style={{ width: `${sidebarWidth}px` }}
+      >
+        {sidebar}
+      </div>
       {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
       <div
         className="absolute bg-chrome-divider w-[4px] h-full border-l-2 border-chrome-100 cursor-ew-resize"
+        style={{ left: `${sidebarWidth}px` }}
         onMouseDown={handleDrag}
       />
       <main
         className="h-full flex flex-col overflow-hidden"
+        style={{ marginLeft: `${sidebarWidth + 4}px` }}
       >
         <div className="bg-chrome-100 border-b border-chrome-divider">
           {header}
