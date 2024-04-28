@@ -47,7 +47,7 @@ RUN mkdir -p -m 0700 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
 # fetch dependencies
 COPY frontend/package.json ./
 COPY frontend/pnpm-lock.yaml ./
-RUN --mount=type=ssh pnpm install
+RUN pnpm install
 
 # copy code
 COPY frontend/ .
