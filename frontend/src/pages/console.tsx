@@ -475,21 +475,13 @@ const InnerLayout = ({ sidebar, header, content }: InnerLayoutProps) => {
 
   return (
     <div className="relative h-full">
-      <div
-        className="absolute h-full bg-chrome-100 overflow-x-hidden"
-        style={{ width: `${sidebarWidth}px` }}
-      >
-        {sidebar}
-      </div>
       {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
       <div
         className="absolute bg-chrome-divider w-[4px] h-full border-l-2 border-chrome-100 cursor-ew-resize"
-        style={{ left: `${sidebarWidth}px` }}
         onMouseDown={handleDrag}
       />
       <main
         className="h-full flex flex-col overflow-hidden"
-        style={{ marginLeft: `${sidebarWidth + 4}px` }}
       >
         <div className="bg-chrome-100 border-b border-chrome-divider">
           {header}
